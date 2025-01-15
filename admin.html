@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>春节出行计划 - 管理页面</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .container {
+            max-width: 1200px !important;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .admin-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            table-layout: fixed;
+            min-width: 1000px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+            color: #333;
+            white-space: normal;
+            word-break: break-all;
+        }
+        
+        th:nth-child(1), td:nth-child(1) { width: 12%; }
+        th:nth-child(2), td:nth-child(2) { width: 18%; }
+        th:nth-child(3), td:nth-child(3) { width: 18%; }
+        th:nth-child(4), td:nth-child(4) { width: 18%; }
+        th:nth-child(5), td:nth-child(5) { width: 12%; }
+        th:nth-child(6), td:nth-child(6) { width: 22%; }
+        
+        th {
+            background: #ffd700;
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px 12px;
+        }
+        
+        td {
+            text-align: center;
+            padding: 12px 15px;
+        }
+        
+        .admin-buttons {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .admin-buttons button {
+            margin: 5px;
+            width: auto;
+            display: inline-block;
+            min-width: 100px;
+            padding: 8px 15px;
+        }
+        
+        .export-btn {
+            background: #52c41a !important;
+        }
+        
+        .clear-btn {
+            background: #ff4d4f !important;
+        }
+        
+        .back-btn {
+            background: #1890ff !important;
+            margin-right: 10px;
+        }
+        
+        #passwordModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .modal-content input {
+            margin: 10px 0;
+            padding: 5px;
+            width: 200px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        h1::before,
+        h1::after {
+            content: "🏮";
+            margin: 0 10px;
+            font-size: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .admin-container {
+                padding: 15px;
+            }
+            
+            .admin-buttons button {
+                padding: 6px 12px;
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="passwordModal">
+        <div class="modal-content">
+            <h2>请输入管理密码</h2>
+            <input type="password" id="passwordInput" placeholder="请输入密码">
+            <div>
+                <button onclick="checkPassword()">确定</button>
+                <button onclick="goBack()">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="display: none;" id="mainContent">
+        <div class="admin-container">
+            <h1>春节出行计划数据管理</h1>
+            <div class="admin-buttons">
+                <button onclick="goBack()" class="back-btn">返回</button>
+                <button onclick="exportToExcel()" class="export-btn">导出Excel</button>
+                <button onclick="clearData()" class="clear-btn">清空数据</button>
+            </div>
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>目的地</th>
+                        <th>出行日期</th>
+                        <th>返程日期</th>
+                        <th>交通工具</th>
+                        <th>录入时间</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const PASSWORD = "您的新密码";
+        
+        // 密码验证
+        function checkPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === PASSWORD) {
+                document.getElementById('passwordModal').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                displayData();
+            } else {
+                alert('密码错误！');
+                input.value = '';
+            }
+        }
+
+        // 返回功能
+        function goBack() {
+            window.location.href = './index.html';
+        }
+
+        // 添加回车键支持
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
+
+        // 页面加载时显示数据
+        document.addEventListener('DOMContentLoaded', function() {
+            displayData();
+        });
+
+        // 显示数据
+        function displayData() {
+            const tbody = document.querySelector('#dataTable tbody');
+            const travelData = JSON.parse(localStorage.getItem('travelData')) || [];
+            
+            tbody.innerHTML = '';
+            
+            travelData.forEach(data => {
+                const row = tbody.insertRow();
+                Object.values(data).forEach(text => {
+                    const cell = row.insertCell();
+                    cell.textContent = text;
+                });
+            });
+        }
+
+        // 导出Excel（CSV格式）
+        function exportToExcel() {
+            const travelData = JSON.parse(localStorage.getItem('travelData')) || [];
+            if (travelData.length === 0) {
+                alert('没有数据可导出！');
+                return;
+            }
+
+            let csvContent = "姓名,目的地,出行日期,返程日期,交通工具,录入时间\n";
+            
+            travelData.forEach(data => {
+                csvContent += `${data.name},${data.destination},${data.departureDate},${data.returnDate},${data.transport},${data.inputTime}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "春节出行计划.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 清空数据
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                localStorage.removeItem('travelData');
+                displayData();
+                alert('数据已清空！');
+            }
+        }
+    </script>
+</body>
+</html> 
